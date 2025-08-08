@@ -42,11 +42,19 @@ clone_repos() {
     repo=${repo%/}
     [[ -z "$repo" ]] && continue
 
+    # Skip Gists
     if [[ "$repo" == *"gist.github.com"* ]]; then
       echo "⚠ Skipping Gist - $repo"
       continue
     fi
 
+    # Skip nuclei-templates repos
+    if [[ "$repo" == *"nuclei-templates"* ]]; then
+      echo "⚠ Skipping nuclei-templates repo - $repo"
+      continue
+    fi
+
+    # Add .git if missing
     if [[ "$repo" != *.git ]]; then
       repo="${repo}.git"
     fi
@@ -63,16 +71,8 @@ clone_repos() {
     echo "📥 Cloning - $repo ..."
     git clone "$repo" "$folder" || { echo "❌ Failed to clone - $repo"; continue; }
 
-    echo "🧹 Cleaning $folder ..."
-    cd "$folder" || continue
+    # No cleaning or YAML-only extraction
 
-    mkdir -p __yaml_temp__
-    find . -type f \( -iname "*.yaml" -o -iname "*.yml" \) -exec cp --parents {} __yaml_temp__ \;
-    find . ! -path "./__yaml_temp__*" -delete
-    cp -r __yaml_temp__/* .
-    rm -rf __yaml_temp__
-
-    cd ..
   done < "../$REPO_FILE"
 }
 
