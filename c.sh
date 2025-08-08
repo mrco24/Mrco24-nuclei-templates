@@ -77,43 +77,35 @@ clone_repos() {
 }
 
 # ---------------------------------------
-# Function: Remove Duplicate YAML Files
+# Function: Remove Duplicate YAML Files by Filename Only
 # ---------------------------------------
-deduplicate_yaml() {
-  echo "🧼 Starting duplicate YAML removal..."
+deduplicate_yaml_by_filename() {
+  echo "🧼 Starting global duplicate YAML removal based on filename..."
 
-  for repo_dir in */; do
-    cd "$repo_dir" || continue
+  declare -A filenames_seen=()
+  duplicates_found=false
 
-    echo "🔍 Checking folder: $repo_dir"
+  while IFS= read -r file; do
+    filename=$(basename "$file")
 
-    declare -A checksums=()
-    duplicates_found=false
-
-    while IFS= read -r file; do
-      checksum=$(md5sum "$file" | awk '{print $1}')
-      if [[ -n "${checksums[$checksum]}" ]]; then
-        echo "❌ Duplicate removed: $file (same as ${checksums[$checksum]})"
-        rm "$file"
-        duplicates_found=true
-      else
-        checksums[$checksum]="$file"
-      fi
-    done < <(find . -type f \( -iname "*.yaml" -o -iname "*.yml" \))
-
-    if [[ "$duplicates_found" = false ]]; then
-      echo "✅ No duplicates found in $repo_dir"
+    if [[ -n "${filenames_seen[$filename]}" ]]; then
+      echo "❌ Removed duplicate filename: $file (same name as ${filenames_seen[$filename]})"
+      rm "$file"
+      duplicates_found=true
+    else
+      filenames_seen[$filename]="$file"
     fi
+  done < <(find . -type f \( -iname "*.yaml" -o -iname "*.yml" \))
 
-    unset checksums
-    cd ..
-  done
+  if [[ "$duplicates_found" = false ]]; then
+    echo "✅ No duplicate filenames found."
+  fi
 
-  echo "✅ Duplicate removal complete."
+  echo "✅ Filename-based duplicate removal complete."
 }
 
 # ---------------------------------------
 # Execute Actions
 # ---------------------------------------
 $CLONE && clone_repos
-$DEDUPLICATE && deduplicate_yaml
+$DEDUPLICATE && deduplicate_yaml_by_filename
